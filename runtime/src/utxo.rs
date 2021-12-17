@@ -17,6 +17,21 @@ pub trait Trait: system::Trait {
 	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
 }
 
+pub struct TransactionInput {
+ 
+	pub outpoint: H256, // a reference to a UTXO to be spent
+	pub sigscript: H512, // proof that transaction owener is authorised to spend to refered UTXO and is als a proof that the entire transction is untamperred
+
+}
+
+pub struct TransactionOutput{
+
+	pub value: Value, //reference associated with this UTXO
+	pub pubkey: H256, // public key associated with this output . key of the Utxo's owner
+}
+
+
+
 decl_storage! {
 	trait Store for Module<T: Trait> as Utxo {
 
