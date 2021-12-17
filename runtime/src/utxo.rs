@@ -5,32 +5,38 @@ use frame_support::{
 	dispatch::{DispatchResult, Vec},
 	ensure,
 };
-use sp_core::{H256, H512};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519::{Public, Signature};
+use sp_core::{H256, H512};
 use sp_runtime::traits::{BlakeTwo256, Hash, SaturatedConversion};
-use sp_std::collections::btree_map::BTreeMap;
 use sp_runtime::transaction_validity::{TransactionLongevity, ValidTransaction};
+use sp_std::collections::btree_map::BTreeMap;
 
 pub trait Trait: system::Trait {
 	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
 }
 
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(PatialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
 pub struct TransactionInput {
- 
-	pub outpoint: H256, // a reference to a UTXO to be spent
+	pub outpoint: H256,  // a reference to a UTXO to be spent
 	pub sigscript: H512, // proof that transaction owener is authorised to spend to refered UTXO and is als a proof that the entire transction is untamperred
-
 }
 
-pub struct TransactionOutput{
-
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(PatialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
+pub struct TransactionOutput {
 	pub value: Value, //reference associated with this UTXO
 	pub pubkey: H256, // public key associated with this output . key of the Utxo's owner
 }
 
-
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(PatialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
+pub struct Transaction {
+	pub inputs: Vect<TransactionInput>,
+	pub output: Vec<TransactionOutput>,
+}
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Utxo {
@@ -57,10 +63,12 @@ decl_event! {
 mod tests {
 	use super::*;
 
-	use frame_support::{assert_ok, assert_err, impl_outer_origin, parameter_types, weights::Weight};
-	use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+	use frame_support::{
+		assert_err, assert_ok, impl_outer_origin, parameter_types, weights::Weight,
+	};
 	use sp_core::testing::{KeyStore, SR25519};
 	use sp_core::traits::KeystoreExt;
+	use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 	impl_outer_origin! {
 		pub enum Origin for Test {}
@@ -100,5 +108,4 @@ mod tests {
 	}
 
 	type Utxo = Module<Test>;
-
 }
