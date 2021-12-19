@@ -126,6 +126,58 @@ impl<T: Trait> Module<T> {
 		}
 		Ok(())
 	}
+
+	//Disper reward function is executed at the end of the every Unique Block
+fn disperse_reward(authorities: &[H256]){
+	//1.Divide the reward fairly & Calculate how much each validator is going to get
+	 let reward = <RewardTotal>::take();
+	 let share_value:Value = reward
+	 .checked_div(authorities.len() as Value)
+	 .ok_or("No authorities")
+	 .unwrap();
+
+	 if share_value == 0 { return } // if the reward is 0 then prevent blockchain from executing the coputation 
+
+	 let remainder = reward // Calculating the remainder left after sharing the rewards among validatiors / authorities 
+	 .checked_sub(shared_value*authorities.len() as Value)
+	 .ok_or("Sub underflow")
+	 .unwrap();
+
+	 <ReawardTotal>:put(remainder as Value) // Remaider total left after shared rewards is saved as reward for the next block for validator 
+
+	//2. Crearte UTxo per validator 
+	for authority in authorities {
+// Iterate and Create and write one Utxo containing the shared_value per authority
+		let utxo = TransactionOutput {
+			value:share_value,
+			pubkey: *authority,
+		};
+
+		//Ensuring everytime when dispersing the reward that are containing the Utxos with Unique hashes 
+		let hash = BlakeTwo256::hash_of(&(&utxo,
+		<system::Module<T>>::block_number().staurated_into::<u64>())); // Making sure the Block_number is unique
+		
+		if !<UtxoStore>::contains_key(hash){
+			<UtxoStore>::insert(hash,utxo);
+		}
+
+		//Finally saving the above newly generated Utxos with their respective hash  into UtxoStore
+
+		if !<UtxoStore>::contains_key(hash){ // Checking if the UTxoStore  already contains the same key/hash or not
+			<UtxoStore>::insert(hash,utxo); // Inset the hash in UtxoStore 
+			sp_runtime::print("Transaction reward sent to ");
+			sp_runtime::print((hash.as_fixed_bytes() as &[u8]); // Converting hash into printable bytes value and then converting that byte value into a reference to a vector of [u8] which is printable
+		}
+		else {
+			sp_runtime::print("Transaction reward wasted due to hash collision ");
+
+		}
+	}
+
+
+	//3.Write Utxo to utxoStore 
+}
+
 }
 
 /// Tests for this module
