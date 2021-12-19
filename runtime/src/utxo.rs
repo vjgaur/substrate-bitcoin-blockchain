@@ -24,6 +24,8 @@ pub struct TransactionInput {
 	pub sigscript: H512, // proof that transaction owener is authorised to spend to refered UTXO and is als a proof that the entire transction is untamperred
 }
 
+pub type Value = u128;
+
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(PatialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
 pub struct TransactionOutput {
@@ -35,26 +37,94 @@ pub struct TransactionOutput {
 #[derive(PatialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
 pub struct Transaction {
 	pub inputs: Vect<TransactionInput>,
-	pub output: Vec<TransactionOutput>,
+	pub outputs: Vec<TransactionOutput>,
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Utxo {
 
+		UtxoStore build(|config: &GensisConfig|{
+			config.genesis_utxos
+				   .iter()
+				   .cloned()
+				   .map(|u| (BlakeTwo256::hash_of(&u),u))
+				   .collect::<Vec<_>>()
+		}): map hasher(identity) H256 => Option<TransactionOutput>;
+	
+		pub RewardTotal get (reward_total):Vallue;
 	}
+	add_extra_genesis {
+		config(genesis_utxos): Vec<TransactionOutput>;
+	}		
 }
+
 
 // External functions: callable by the end user
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
+		pub fn spend(_origin, transaction: Transaction)=> DispatchResult{
+			//1. Check if the transaction is valid
+
+
+
+			//2. If the tx is valid update the storage
+			//item namely the UTXOStore to reflect the state transaction either new UTXOs that are created
+			let reward :Value = 0;
+			Self::update_storage(&transaction, reward)?;
+
+
+			//3. Emitting Success Event signaling to everyone that our transction has succeeded
+			Self::deposit_event(Event::TransactionSuccess(Transaction)) // deposit event writes an event into a particular blocks event records, it expects event emuration that you need to creat in decl_event! macro
+			Ok(())
+		}
+
+		fn on_finalize(){
+			let auth:Vec<_> = Aura::authorities().iter().map(|x|){
+				let r: &Public = x.as_ref();
+				r.0.into()
+			}).collect();
+			Self::disperse_reward(&auth);
+		}
+
 	}
 }
 
 decl_event! {
 	pub enum Event {
+		TransactionSuccess(Transaction),
+	}
+}
 
+impl<T: Trait> Module<T> {
+	fn update_storage(transaction: &Transaction, reward:Value) -> DispatchResult {
+		
+		let new_total = <RewardTotal>:get()
+						.checked_add(reward)
+						.ok_or("reward overflow")?;
+		<RewardTotal>::put(new_total);
+	        
+		//1. Remove UTXO which is successfuly spent from UTXOStore
+		for input in &transaction.inputs {
+			//Itereating through transaction input to remove them from storage one by one
+			<UtxoStore>::remove(input.outpoint); //outpoint is the key at which this old input UTXO is currently been stored
+			                         /* Syntax <UtxoStore>:: is called a rust turbofish
+									 and its a special rust syntax that lest you
+									 specify the concrete type for a generic function,
+									 method , struct of anythin else you want to use */
+		}
+
+
+		//2. Create New UTXO that declares in transaction output of this transaction and save this UTXOs to UTXOStore
+		lwr mut index:u64 = 0;
+		for output in &transaction.outputs {
+			// is a vector of transaction outputs
+			let hash = BlakeTwo256.hash_of(&(&transaction.encode(),index)); // Calculate the hash over the key for how each transaction output will be stored which will be a BlackeTwo256 hashing the refrence of output
+			index = index.checked_add(1).ok_or("output index overflow")?;
+			<UtxoStore>::insert(hash, output) // Inserting into UTXoStore new key => value pair
+		}
+		Ok(())
 	}
 }
 
