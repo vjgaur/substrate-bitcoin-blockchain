@@ -2,7 +2,7 @@
 
 [Original Inspiration] (https://www.youtube.com/watch?v=qaykNPHJcyw&list=PLp0_ueXY_enXeTURZk2frt7muxf2Hz6sN)
 
-### 2. Used basic utxo basic template
+### 2. Used basic utxo template
 
 Clone your copy of the workshop codebase
 
