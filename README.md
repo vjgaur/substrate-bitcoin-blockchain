@@ -1,4 +1,4 @@
-# Hands On Step by Step Building Bitcoin like Blockchain in Substrate/RUST with the help of "Build a Bitcoin-like Blockchain with Substrate Youtube Playlist"
+## Hands On Step by Step Building Bitcoin like Blockchain in Substrate/RUST with the help of "Build a Bitcoin-like Blockchain with Substrate Youtube Playlist"
 
 [Original Inspiration] (https://www.youtube.com/watch?v=qaykNPHJcyw&list=PLp0_ueXY_enXeTURZk2frt7muxf2Hz6sN)
 
