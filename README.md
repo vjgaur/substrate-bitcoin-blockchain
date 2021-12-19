@@ -1,3 +1,17 @@
+# Hands On Step by Step Building Bitcoin like Blockchain in Substrate/RUST with the help of "Build a Bitcoin-like Blockchain with Substrate Youtube Playlist"
+
+[Original Inspiration] (https://www.youtube.com/watch?v=qaykNPHJcyw&list=PLp0_ueXY_enXeTURZk2frt7muxf2Hz6sN)
+
+### 2. Used basic utxo basic template
+
+Clone your copy of the workshop codebase
+
+```zsh
+git clone https://github.com/substrate-developer-hub/utxo-workshop.git
+```
+
+# Original Readme credits below
+
 # UTXO on Substrate
 
 A UTXO chain implementation on Substrate, with two self-guided workshops.Original [UXTO inspiration](https://github.com/0x7CFE/substrate-node-template/tree/utxo) by [Dmitriy Kashitsyn](https://github.com/0x7CFE).
@@ -5,6 +19,7 @@ A UTXO chain implementation on Substrate, with two self-guided workshops.Origina
 Substrate Version: `2.0.0-alpha.5`. For educational purposes only.
 
 ## Table of Contents
+
 - [Installation](#Installation): Setting up Rust & Substrate dependencies
 
 - [UI Demo](#UI-Demo): Demoing this UTXO implementation in a simple UI
@@ -15,10 +30,10 @@ Substrate Version: `2.0.0-alpha.5`. For educational purposes only.
 
 - [Helpful Resources](#Helpful-Resources): Documentation and references if you get stuck in the workshops
 
-
 ## Installation
 
 ### 1. Install or update Rust
+
 ```zsh
 curl https://sh.rustup.rs -sSf | sh
 
@@ -44,10 +59,12 @@ git clone https://github.com/substrate-developer-hub/utxo-workshop.git
 In this UI demo, you will interact with the UTXO blockchain via the [Polkadot UI](https://substrate.dev/docs/en/development/front-end/polkadot-js).
 
 The following demo takes you through a scenario where:
+
 - Alice already owns a UTXO of value 100 upon genesis
 - Alice sends Bob a UTXO with value 50, tipping the remainder to validators
 
 1. Compile and build a release in dev mode
+
 ```
 # Initialize your Wasm Build environment:
 ./scripts/init.sh
@@ -57,6 +74,7 @@ cargo build --release
 ```
 
 2. Start your node & start producing blocks:
+
 ```zsh
 ./target/release/utxo-workshop --dev
 
@@ -92,35 +110,40 @@ cargo build --release
 
 6. **Confirm that Alice already has 100 UTXO at genesis**. In `Chain State` > `Storage`, select `utxo`. Input the hash `0x76584168d10a20084082ed80ec71e2a783abbb8dd6eb9d4893b089228498e9ff`. Click the `+` notation to query blockchain state.
 
-    Notice that:
-    - This UTXO has a value of `100`
-    - This UTXO belongs to Alice's pubkey. You use the [subkey](https://substrate.dev/docs/en/next/development/tools/subkey#well-known-keys) tool to confirm that the pubkey indeed belongs to Alice
+   Notice that:
+
+   - This UTXO has a value of `100`
+   - This UTXO belongs to Alice's pubkey. You use the [subkey](https://substrate.dev/docs/en/next/development/tools/subkey#well-known-keys) tool to confirm that the pubkey indeed belongs to Alice
 
 7. **Spend Alice's UTXO, giving 50 to Bob.** In the `Extrinsics` tab, invoke the `spend` function from the `utxo` pallet, using Alice as the transaction sender. Use the following input parameters:
 
-    - outpoint: `0x76584168d10a20084082ed80ec71e2a783abbb8dd6eb9d4893b089228498e9ff`
-    - sigscript: `0x6ceab99702c60b111c12c2867679c5555c00dcd4d6ab40efa01e3a65083bfb6c6f5c1ed3356d7141ec61894153b8ba7fb413bf1e990ed99ff6dee5da1b24fd83`
-    - value: `50`
-    - pubkey: `0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48`
+   - outpoint: `0x76584168d10a20084082ed80ec71e2a783abbb8dd6eb9d4893b089228498e9ff`
+   - sigscript: `0x6ceab99702c60b111c12c2867679c5555c00dcd4d6ab40efa01e3a65083bfb6c6f5c1ed3356d7141ec61894153b8ba7fb413bf1e990ed99ff6dee5da1b24fd83`
+   - value: `50`
+   - pubkey: `0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48`
 
-    Send this as an `unsigned` transaction. With UTXO blockchains, the proof is already in the `sigscript` input.
+   Send this as an `unsigned` transaction. With UTXO blockchains, the proof is already in the `sigscript` input.
 
 8. **Verify that your transaction succeeded**. In `Chain State`, look up the newly created UTXO hash: `0xdbc75ab8ee9b83dcbcea4695f9c42754d94e92c3c397d63b1bc627c2a2ef94e6` to verify that a new UTXO of 50, belonging to Bob, now exists! Also you can verify that Alice's original UTXO has been spent and no longer exists in UtxoStore.
 
-*Coming soon: A video walkthrough of the above demo.*
+_Coming soon: A video walkthrough of the above demo._
 
 ## Beginner Workshop
+
 **Estimated time**: 2 hours
 
 In this workshop, you will:
+
 - Get familiar with basic Rust and Substrate functionality
 - Prevent malicious users from sending bad UTXO transactions
 
 Your challenge is to fix the code such that:
+
 1. The Rust compiler compiles without errors
 2. All tests in `utxo.rs` pass, ensuring secure transactions
 
 ### Directions
+
 1. Checkout the `workshop` branch. The `Master` branch has the solutions, so don't peek!
 
 ```zsh
@@ -172,6 +195,7 @@ test utxo::tests::test_simple_transaction ... ok
 ```
 
 ## Advanced Workshop
+
 **VIDEO TUTORIALS COMING SOON**
 
 **Estimated time**: 1 hour
@@ -179,6 +203,7 @@ test utxo::tests::test_simple_transaction ... ok
 In this workshop, you will implement this UTXO project from scratch using Substrate.
 
 You will learn:
+
 - How to implement the UTXO model on Substrate
 - How to secure UTXO transactions against attacks
 - How to seed genesis block with UTXOs
@@ -186,8 +211,8 @@ You will learn:
 - How to customize transaction pool logic on Substrate
 - Good coding patterns for working with Substrate & Rust
 
-
 ## Helpful Resources
+
 - [Substrate documentation](http://crates.parity.io)
 - [bytes to Vec<u8> converter](https://cryptii.com/pipes/integer-encoder)
 - [Polkadot UI](https://polkadot.js.org/)
