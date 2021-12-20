@@ -101,12 +101,12 @@ impl<T: Trait> Module<T> {
 	
 
 	pub fn get_simple_transaction(transaction: &Transaction)-> Vec<u8>{
-		let mut trx = transaction.cloned();
+		let mut trx = transaction.cloned(); //initializing the trx by cloning the original transaction
 
-		for input in trx.inputs.iter_mut(){
-			input.sigscript = H512::zero();
+		for input in trx.inputs.iter_mut(){ //iterating over transaction inputs which is mutable
+			input.sigscript = H512::zero(); // remove whatever signature is passed in with H512 type that's essentially the Hash of all zeros such as 0x000
 		}
-		trx.encode();
+		trx.encode(); //returning the encoded version of this transaction 
 
 	}
 	// Inputs and outputs are not empty
@@ -118,14 +118,15 @@ impl<T: Trait> Module<T> {
 
 
 
-	//This validate function takes transaction reference to a transaction type object
-	pub fn validate_transaction(transaction: &Transaction) -> Result<Value, &static str>{
+	//This validate function takes transaction reference to a transaction type object and returns the result
+	pub fn validate_transaction(transaction: &Transaction) -> Result<Value, &'static str>{
 	//Let's copy our list of security checks that we need to implement here.
 		ensure!(!transactio  n.inputs.is_empty(),"no inputs")
 		ensure!(!transaction.outputs.is_empty(),"no outputs")
 
 	// Each input exists and is used exactly once 
 		{
+			//BTreemap used for sorting dataset and get the uniqe set of particular collection of data
 			let input_set: BTreeMap<_,()> = transaction.inputs.iter().map(|input| (input,())).collect();
 			ensure! (input_set.len() == transaction.inputs.len(),"each input must only be used once");
 		}
@@ -136,15 +137,18 @@ impl<T: Trait> Module<T> {
 			ensure! (output_set.len() == transaction.outputs.len(),"each output must be defined only once");
 		}
 
-		let simple_transaction = Self:: get_simple_transaction(transaction);
+		let simple_transaction = Self:: get_simple_transaction(transaction); // calling get_simple_transaction function
+		let mut total_input:  Value = 0;
+		let mut total_output: Value = 0;
 		for input in transaction.inputs.iter(){
 			//Attempt to get this particular hash = get(&input.outpoint) from the hashmap UtxoStore and if that hash exist, name the return value (Utxo) as input_utxo
-			if let  some(input_utxo) = <UtxoStore>::get(&input.outpoint) {
+			if let  Some(input_utxo) = <UtxoStore>::get(&input.outpoint) {
 				ensure! (sp_io::sr25519_verify(
-					&Signature::from_raw(*input.sigscript.as_fixed_bytes()),
+					&Signature::from_raw(*input.sigscript.as_fixed_bytes()), //signature verification
 					&simple_transaction,
 					&Public::from_h256(input_utxo.pubkey)
 				), "signature must be valid");
+				//Tallying the inputs
 				total_input = total_input.checked_add(input_utxo.value).ok_or("input value overflow")?;
 			}	
 			else
@@ -153,18 +157,22 @@ impl<T: Trait> Module<T> {
 
 			}
 		}
+		let mut output_index: u64 = 0; 
+		// Validating all outputs are valid 
 		for output in transaction.outputs.iter(){
-			ensure!(output.value > 0, "output value must be nonzero");
-			let hash = BlakeTwo256::hash_of(&(&transaction.encode(),output_index));
+			ensure!(output.value > 0, "output value must be nonzero"); // ensuring user isnt trying to create empty Utxos
+			let hash = BlakeTwo256::hash_of(&(&transaction.encode(),output_index)); //Calculating hash
 			output_index = output_index.checked_add(1).ok_or("output index overflow"))?;
-			ensure!(!<UtxoStore>:: contains_key(hash), "output already exists");
+			ensure!(!<UtxoStore>:: contains_key(hash), "output already exists"); // Ensuring Utxstore does store the newly calculated hash
+			//Tallying total output should be equal to total current output plus the value of current output
 			total_output = total_output.checked_add(output.value).ok_or("output value overflow")?;
 
 		}
+		//ensuring user isnt creating anything from thin air
 		ensure!(total_input >= total_output, "output value must not exceed input value");
 		let reward = total_input.checked_sub(total_output).ok_or("reward underflow")?;
 
-		Ok(reward)
+		Ok(reward) //returning the reward value
 
 	}
 	
@@ -300,4 +308,68 @@ mod tests {
 	}
 
 	type Utxo = Module<Test>;
+	use hex_literal::hex;
+	//The externalities mainly provide access to storage and to registered extensions. Extensions are for example the keystore or the offchain externalities
+	const ALICE_PHRASE: &str = "news slush supreme milk chapter athelete soap sausage put clutch what kitten";
+	let GENESIS_UTXO: [u8;32]= hex(!"has value");
+	fn new_test_ext() -> sp_io::TestExternalities {
+	//1. Create keys for test user : Alice
+		let keystore = KeyStore::new();
+		let alice_pub_key = keystore.write().sr25519_generate_new(SR25519, Some(ALICE_PHRASE)).unwrap();		
+	//2. Store a seed (100, ALice owned) in genesis storage
+
+	
+
+		let mut t = system.GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap();
+		t.top.extend(
+			GenesisConfig{
+				genesis_utxos: vec![
+					TransactionOutput {
+						value: 100,
+						pubkey:H256:: from(alice_pub_key),
+					}
+				],
+				..Default::default()
+			}
+			.build_storage()
+			.unwrap()
+			.top,
+		);
+		let mut ext = sp_io::TestExternalities::from(t); // accessing actual externality by converting t
+		//3. Store alice's keys storage
+	    ext.register_extension(Keystore(keystore));
+		ext
+	}
+
+	#[test]
+	fn test_simple_transaction(){
+		new_test_ext().execute_with(||{
+			let alice_pub_key = sp_io::crypto::sr25519_verify_keys(SR25519)[0];
+
+			let mut transaction = Transaction{
+				inputs: vec![TransactionInput{
+					outpoint:H256::from(GENESIS_UTXO),
+					sigscript:H512::zero(),
+				}],
+				outputs:vec![TransactionOutput{
+					value:50,
+					pubkey: H256::from(alice_pub_key),
+				}],
+			};
+			let alice_signature = sp_io::crypto::sr25519_sign(SR25519,&alice_pub_key, &transaction.encode()).unwrap();
+			transaction.inputs[0].sigscript = H512::from(alice_signature);
+			let new_utxo_hash = BlakeTwo256::hash_of(&(&transaction.encode(),0 as u64));
+
+			//1. spend will be ok
+			assert_ok!(Utxo::spend(Origin::signed(0),transaction));
+
+			//2. old utxo is gone
+			assert!(!UtxoStore::contains_key(H256::from (GENESIS_UTXO)));
+			//3. new utxo will exist value == 50
+			assert!(UtxoStore::contai(new_utxo_hash));
+			assert_eq!(UtxoStore::get(new_utxo_hash).unwrap.value,50);
+		});
+	}
 }
